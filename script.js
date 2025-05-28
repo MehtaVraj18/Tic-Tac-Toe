@@ -27,38 +27,76 @@ function handleClick(e) {
   const index = e.target.dataset.index;
   if (board[index] === "" && !gameOver) {
     board[index] = player;
+    createBoard();
     if (checkWin(player)) {
       endGame("You win!");
     } else if (boardFull()) {
       endGame("It's a tie!");
     } else {
-      computerTurn();
+      setTimeout(() => {
+        let move = getBestMove();
+        board[move] = computer;
+        createBoard();
+        if (checkWin(computer)) {
+          endGame("Computer wins!");
+        } else if (boardFull()) {
+          endGame("It's a tie!");
+        }
+      }, 300);
     }
-    createBoard();
-  }
-}
-
-function computerTurn() {
-  let move = getBestMove();
-  board[move] = computer;
-  if (checkWin(computer)) {
-    endGame("Computer wins!");
-  } else if (boardFull()) {
-    endGame("It's a tie!");
   }
 }
 
 function getBestMove() {
-  // Basic AI: pick first available move (can be improved)
-  for (let i = 0; i < 9; i++) {
-    if (board[i] === "") return i;
+  let bestScore = -Infinity;
+  let move;
+  for (let i = 0; i < board.length; i++) {
+    if (board[i] === "") {
+      board[i] = computer;
+      let score = minimax(board, 0, false);
+      board[i] = "";
+      if (score > bestScore) {
+        bestScore = score;
+        move = i;
+      }
+    }
   }
-  return -1;
+  return move;
 }
 
-function checkWin(player) {
+function minimax(newBoard, depth, isMaximizing) {
+  if (checkWin(computer)) return 10 - depth;
+  if (checkWin(player)) return depth - 10;
+  if (boardFull()) return 0;
+
+  if (isMaximizing) {
+    let bestScore = -Infinity;
+    for (let i = 0; i < newBoard.length; i++) {
+      if (newBoard[i] === "") {
+        newBoard[i] = computer;
+        let score = minimax(newBoard, depth + 1, false);
+        newBoard[i] = "";
+        bestScore = Math.max(score, bestScore);
+      }
+    }
+    return bestScore;
+  } else {
+    let bestScore = Infinity;
+    for (let i = 0; i < newBoard.length; i++) {
+      if (newBoard[i] === "") {
+        newBoard[i] = player;
+        let score = minimax(newBoard, depth + 1, true);
+        newBoard[i] = "";
+        bestScore = Math.min(score, bestScore);
+      }
+    }
+    return bestScore;
+  }
+}
+
+function checkWin(current) {
   return winningCombos.some(combo =>
-    combo.every(index => board[index] === player)
+    combo.every(index => board[index] === current)
   );
 }
 
@@ -76,7 +114,3 @@ function resetGame() {
   board = ["", "", "", "", "", "", "", "", ""];
   gameOver = false;
   document.getElementById("status").textContent = "Your turn";
-  createBoard();
-}
-
-createBoard();
