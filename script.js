@@ -32,8 +32,8 @@ function handleClick(e) {
     if (isFull(board)) return endGame("It's a tie!");
 
     setTimeout(() => {
-      const move = getBestMove(board);
-      board[move] = computer;
+      const move = computerMove();
+      if (move !== -1) board[move] = computer;
       createBoard();
       if (checkWin(board, computer)) return endGame("Computer wins!");
       if (isFull(board)) return endGame("It's a tie!");
@@ -51,50 +51,38 @@ function isFull(b) {
   return b.every(cell => cell !== "");
 }
 
-function getBestMove(b) {
-  let bestScore = -Infinity;
-  let move = -1;
-
-  for (let i = 0; i < b.length; i++) {
-    if (b[i] === "") {
-      b[i] = computer;
-      let score = minimax([...b], 0, false);
-      b[i] = "";
-      if (score > bestScore) {
-        bestScore = score;
-        move = i;
-      }
-    }
-  }
-  return move;
+function canMove(index) {
+  return board[index] === "";
 }
 
-function minimax(b, depth, isMax) {
-  if (checkWin(b, computer)) return 10 - depth;
-  if (checkWin(b, player)) return depth - 10;
-  if (isFull(b)) return 0;
+function canWin(b, p, move) {
+  let temp = [...b];
+  temp[move] = p;
+  return checkWin(temp, p);
+}
 
-  if (isMax) {
-    let best = -Infinity;
-    for (let i = 0; i < b.length; i++) {
-      if (b[i] === "") {
-        b[i] = computer;
-        best = Math.max(best, minimax([...b], depth + 1, false));
-        b[i] = "";
-      }
-    }
-    return best;
-  } else {
-    let best = Infinity;
-    for (let i = 0; i < b.length; i++) {
-      if (b[i] === "") {
-        b[i] = player;
-        best = Math.min(best, minimax([...b], depth + 1, true));
-        b[i] = "";
-      }
-    }
-    return best;
+function computerMove() {
+  // 1. Can computer win?
+  for (let i = 0; i < 9; i++) {
+    if (canMove(i) && canWin(board, computer, i)) return i;
   }
+  // 2. Can player win? Block them.
+  for (let i = 0; i < 9; i++) {
+    if (canMove(i) && canWin(board, player, i)) return i;
+  }
+  // 3. Take center
+  if (canMove(4)) return 4;
+  // 4. Take a corner
+  const corners = [0, 2, 6, 8];
+  for (let i of corners) {
+    if (canMove(i)) return i;
+  }
+  // 5. Take a side
+  const sides = [1, 3, 5, 7];
+  for (let i of sides) {
+    if (canMove(i)) return i;
+  }
+  return -1;
 }
 
 function endGame(message) {
