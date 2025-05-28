@@ -1,6 +1,6 @@
 let board = ["", "", "", "", "", "", "", "", ""];
-let player = "X";
-let computer = "O";
+const player = "X";
+const computer = "O";
 let gameOver = false;
 
 const winningCombos = [
@@ -17,7 +17,7 @@ function createBoard() {
     div.classList.add("cell");
     div.dataset.index = index;
     div.textContent = cell;
-    if (cell !== "") div.classList.add("disabled");
+    if (cell !== "" || gameOver) div.classList.add("disabled");
     div.addEventListener("click", handleClick);
     boardDiv.appendChild(div);
   });
@@ -28,35 +28,38 @@ function handleClick(e) {
   if (board[index] === "" && !gameOver) {
     board[index] = player;
     createBoard();
-    if (checkWin(player)) {
-      endGame("You win!");
-    } else if (boardFull()) {
-      endGame("It's a tie!");
-    } else {
-      setTimeout(() => {
-        let move = getBestMove();
-        board[move] = computer;
-        createBoard();
-        if (checkWin(computer)) {
-          endGame("Computer wins!");
-        } else if (boardFull()) {
-          endGame("It's a tie!");
-        }
-      }, 300);
-    }
+    if (checkWin(board, player)) return endGame("You win!");
+    if (isFull(board)) return endGame("It's a tie!");
+
+    setTimeout(() => {
+      const move = getBestMove(board);
+      board[move] = computer;
+      createBoard();
+      if (checkWin(board, computer)) return endGame("Computer wins!");
+      if (isFull(board)) return endGame("It's a tie!");
+    }, 200);
   }
 }
 
-function getBestMove() {
+function checkWin(b, p) {
+  return winningCombos.some(combo =>
+    combo.every(index => b[index] === p)
+  );
+}
+
+function isFull(b) {
+  return b.every(cell => cell !== "");
+}
+
+function getBestMove(b) {
   let bestScore = -Infinity;
   let move = -1;
 
-  for (let i = 0; i < board.length; i++) {
-    if (board[i] === "") {
-      board[i] = computer;
-      let score = minimax([...board], 0, false);
-      board[i] = "";
-
+  for (let i = 0; i < b.length; i++) {
+    if (b[i] === "") {
+      b[i] = computer;
+      let score = minimax([...b], 0, false);
+      b[i] = "";
       if (score > bestScore) {
         bestScore = score;
         move = i;
@@ -66,85 +69,45 @@ function getBestMove() {
   return move;
 }
 
-function minimax(b, depth, isMaximizing) {
-  if (checkWinFor(b, computer)) return 10 - depth;
-  if (checkWinFor(b, player)) return depth - 10;
-  if (b.every(cell => cell !== "")) return 0;
+function minimax(b, depth, isMax) {
+  if (checkWin(b, computer)) return 10 - depth;
+  if (checkWin(b, player)) return depth - 10;
+  if (isFull(b)) return 0;
 
-  if (isMaximizing) {
-    let bestScore = -Infinity;
+  if (isMax) {
+    let best = -Infinity;
     for (let i = 0; i < b.length; i++) {
       if (b[i] === "") {
         b[i] = computer;
-        let score = minimax([...b], depth + 1, false);
-        bestScore = Math.max(score, bestScore);
+        best = Math.max(best, minimax([...b], depth + 1, false));
         b[i] = "";
       }
     }
-    return bestScore;
+    return best;
   } else {
-    let bestScore = Infinity;
+    let best = Infinity;
     for (let i = 0; i < b.length; i++) {
       if (b[i] === "") {
         b[i] = player;
-        let score = minimax([...b], depth + 1, true);
-        bestScore = Math.min(score, bestScore);
+        best = Math.min(best, minimax([...b], depth + 1, true));
         b[i] = "";
       }
     }
-    return bestScore;
+    return best;
   }
-}
-
-function checkWinFor(b, current) {
-  return winningCombos.some(combo =>
-    combo.every(index => b[index] === current)
-  );
-}
-
-
-  if (isMaximizing) {
-    let bestScore = -Infinity;
-    for (let i = 0; i < newBoard.length; i++) {
-      if (newBoard[i] === "") {
-        newBoard[i] = computer;
-        let score = minimax(newBoard, depth + 1, false);
-        newBoard[i] = "";
-        bestScore = Math.max(score, bestScore);
-      }
-    }
-    return bestScore;
-  } else {
-    let bestScore = Infinity;
-    for (let i = 0; i < newBoard.length; i++) {
-      if (newBoard[i] === "") {
-        newBoard[i] = player;
-        let score = minimax(newBoard, depth + 1, true);
-        newBoard[i] = "";
-        bestScore = Math.min(score, bestScore);
-      }
-    }
-    return bestScore;
-  }
-}
-
-function checkWin(current) {
-  return winningCombos.some(combo =>
-    combo.every(index => board[index] === current)
-  );
-}
-
-function boardFull() {
-  return board.every(cell => cell !== "");
 }
 
 function endGame(message) {
   gameOver = true;
   document.getElementById("status").textContent = message;
-  document.querySelectorAll(".cell").forEach(cell => cell.classList.add("disabled"));
+  createBoard();
 }
 
 function resetGame() {
   board = ["", "", "", "", "", "", "", "", ""];
   gameOver = false;
   document.getElementById("status").textContent = "Your turn";
+  createBoard();
+}
+
+createBoard();
