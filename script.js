@@ -49,12 +49,14 @@ function handleClick(e) {
 
 function getBestMove() {
   let bestScore = -Infinity;
-  let move;
+  let move = -1;
+
   for (let i = 0; i < board.length; i++) {
     if (board[i] === "") {
       board[i] = computer;
-      let score = minimax(board, 0, false);
+      let score = minimax([...board], 0, false);
       board[i] = "";
+
       if (score > bestScore) {
         bestScore = score;
         move = i;
@@ -64,10 +66,42 @@ function getBestMove() {
   return move;
 }
 
-function minimax(newBoard, depth, isMaximizing) {
-  if (checkWin(computer)) return 10 - depth;
-  if (checkWin(player)) return depth - 10;
-  if (boardFull()) return 0;
+function minimax(b, depth, isMaximizing) {
+  if (checkWinFor(b, computer)) return 10 - depth;
+  if (checkWinFor(b, player)) return depth - 10;
+  if (b.every(cell => cell !== "")) return 0;
+
+  if (isMaximizing) {
+    let bestScore = -Infinity;
+    for (let i = 0; i < b.length; i++) {
+      if (b[i] === "") {
+        b[i] = computer;
+        let score = minimax([...b], depth + 1, false);
+        bestScore = Math.max(score, bestScore);
+        b[i] = "";
+      }
+    }
+    return bestScore;
+  } else {
+    let bestScore = Infinity;
+    for (let i = 0; i < b.length; i++) {
+      if (b[i] === "") {
+        b[i] = player;
+        let score = minimax([...b], depth + 1, true);
+        bestScore = Math.min(score, bestScore);
+        b[i] = "";
+      }
+    }
+    return bestScore;
+  }
+}
+
+function checkWinFor(b, current) {
+  return winningCombos.some(combo =>
+    combo.every(index => b[index] === current)
+  );
+}
+
 
   if (isMaximizing) {
     let bestScore = -Infinity;
